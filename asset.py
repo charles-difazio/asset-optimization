@@ -22,8 +22,8 @@ assets = {'401k' : [ 'VEMPX', 'VTPSX', 'VGSNX', 'VIIIX', 'VBMPX'  ],
           'personal' : [ 'VTSAX', 'VFWAX' ] }
 
 funds = { 'VEMPX' : { 'er' : 0.1,
-                     'price' : 141.28,
-                     'composition' : [1,0,0,0] },
+                      'price' : 141.28,
+                      'composition' : [1,0,0,0] },
           'VTPSX' : { 'er' : 0.1,
                       'price' : 106.74,
                       'composition' : [0,1,0,0] },
