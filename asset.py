@@ -1,4 +1,5 @@
 from pulp import *
+import urllib
 
 prob = LpProblem("Assets", LpMinimize)
 
@@ -22,38 +23,33 @@ assets = {'401k' : [ 'VEMPX', 'VTPSX', 'VGSNX', 'VIIIX', 'VBMPX'  ],
           'personal' : [ 'VTSAX', 'VFWAX' ] }
 
 funds = { 'VEMPX' : { 'er' : 0.1,
-                      'price' : 141.28,
                       'composition' : [1,0,0,0] },
           'VTPSX' : { 'er' : 0.1,
-                      'price' : 106.74,
                       'composition' : [0,1,0,0] },
           'VGSNX' : { 'er' : 0.08,
-                      'price' : 14.37,
                       'composition' : [0,0,1,0] },
           'VIIIX' : { 'er' : 0.02,
-                      'price' : 151.71,
                       'composition' : [1,0,0,0] },
           'VBMPX' : { 'er' : 0.05,
-                      'price' : 10.65,
                       'composition' : [0,0,0,1] },
           'VTIAX' : { 'er' : 0.16,
-                      'price' : 26.69,
                       'composition' : [0,1,0,0] },
           'VTSAX' : { 'er' : 0.05,
-                      'price' : 41.95,
                       'composition' : [1,0,0,0] },
           'VGSLX' : { 'er' : 0.1,
-                      'price' : 92.82,
                       'composition' : [0,0,1,0] },
           'VFSVX' : { 'er' : 0.45,
-                      'price' : 37.36,
                       'composition' : [0,1,0,0] },
           'VSIAX' : { 'er' : 0.1,
-                      'price' : 38.05,
                       'composition' : [1,0,0,0] },
           'VFWAX' : { 'er' : 0.15,
-                      'price' : 29.86,
                       'composition' : [0,1,0,0] } }
+
+# Lookup current prices
+for fund in funds.keys():
+    params = urllib.urlencode({ 's' : fund, 'f' : 'l1', 'e' : '.csv' })
+    f = urllib.urlopen("http://download.finance.yahoo.com/d/quotes.csv", params)
+    funds[fund]['price'] = float(f.read())
 
 shares = {}
 
