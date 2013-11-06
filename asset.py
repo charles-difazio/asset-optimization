@@ -5,11 +5,11 @@ prob = LpProblem("Assets", LpMinimize)
 
 allocation = { 'stock_us'   : 0.36,
                'stock_intl' : 0.36,
-               'reit'       : 0.064,
+               'reit'       : 0.08,
                'bond'       : 0.2 }
 
 account_value = { '401k'     : 100000,
-                  'ira'      : 10000,
+                  'ira'      : 50000,
                   'personal' : 100000 }
 v_total = sum(account_value.values())
 
@@ -18,81 +18,52 @@ for asset_class in allocation.keys():
     ideal_value[asset_class] = allocation[asset_class] * v_total
 
 assets = {'401k' : [ 'VEMPX', 'VTPSX', 'VGSNX', 'VIIIX', 'VBMPX'  ],
-          'ira' : [ 'VTIAX', 'VTSAX', 'VGSLX', 'VFSVX', 'VSIAX' ],
+          'ira' : [ 'VTIAX', 'VTSAX', 'VGSLX' ],
           'personal' : [ 'VTSAX', 'VFWAX' ] }
 
 funds = { 'VEMPX' : { 'er' : 0.1,
                       'composition' :
-                          { 'stock_us'   : 1,
-                            'stock_intl' : 0,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_us'   : 1 } },
           'VTPSX' : { 'er' : 0.1,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 1,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_intl' : 1 } },
           'VGSNX' : { 'er' : 0.08,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 0,
-                            'reit'       : 1,
-                            'bonds'      : 0 } },
+                          { 'reit'       : 1 } },
           'VIIIX' : { 'er' : 0.02,
                       'composition' :
-                          { 'stock_us'   : 1,
-                            'stock_intl' : 0,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_us'   : 1 } },
           'VBMPX' : { 'er' : 0.05,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 0,
-                            'reit'       : 0,
-                            'bonds'      : 1 } },
+                          { 'bonds'      : 1 } },
           'VTIAX' : { 'er' : 0.16,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 1,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_intl' : 1 } },
           'VTSAX' : { 'er' : 0.05,
                       'composition' :
-                          { 'stock_us'   : 1,
-                            'stock_intl' : 0,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_us'   : 1 } },
           'VGSLX' : { 'er' : 0.1,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 0,
-                            'reit'       : 1,
-                            'bonds'      : 0 } },
+                          { 'reit'       : 1 } },
           'VFSVX' : { 'er' : 0.45,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 1,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_intl' : 1 } },
           'VSIAX' : { 'er' : 0.1,
                       'composition' :
-                          { 'stock_us'   : 1,
-                            'stock_intl' : 0,
-                            'reit'       : 0,
-                            'bonds'      : 0 } },
+                          { 'stock_us'   : 1 } },
           'VFWAX' : { 'er' : 0.15,
                       'composition' :
-                          { 'stock_us'   : 0,
-                            'stock_intl' : 1,
-                            'reit'       : 0,
-                            'bonds'      : 0 } } }
+                          { 'stock_intl' : 1 } } }
 
 # Lookup current prices
 for fund in funds.keys():
     params = urllib.urlencode({ 's' : fund, 'f' : 'l1', 'e' : '.csv' })
     f = urllib.urlopen("http://download.finance.yahoo.com/d/quotes.csv", params)
     funds[fund]['price'] = float(f.read())
+    composition = funds[fund]['composition']
+    for asset_class in allocation.keys():
+        if asset_class not in composition:
+            composition[asset_class] = 0
 
 shares = {}
 
@@ -142,7 +113,6 @@ prob += (funds['VBMPX']['price'] * shares['401k']['VBMPX'] ==
 
 # Admiral minima + 10%
 prob += (funds['VTSAX']['price'] * shares['ira']['VTSAX'] >= 11000)
-prob += (funds['VSIAX']['price'] * shares['ira']['VSIAX'] >= 11000)
 prob += (funds['VGSLX']['price'] * shares['ira']['VGSLX'] >= 11000)
 prob += (funds['VFWAX']['price'] * shares['personal']['VFWAX'] >= 11000)
 
