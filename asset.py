@@ -1,4 +1,5 @@
 from pulp import *
+from lxml import etree
 import requests
 
 prob = LpProblem("Assets", LpMinimize)
@@ -21,46 +22,40 @@ assets = {'401k' : [ 'VEMPX', 'VTPSX', 'VGSNX', 'VIIIX', 'VBMPX'  ],
           'ira' : [ 'VTIAX', 'VTSAX', 'VGSLX' ],
           'personal' : [ 'VTSAX', 'VFWAX' ] }
 
-funds = { 'VEMPX' : { 'er' : 0.1,
-                      'composition' :
+funds = { 'VEMPX' : { 'composition' :
                           { 'stock_us'   : 1 } },
-          'VTPSX' : { 'er' : 0.1,
-                      'composition' :
+          'VTPSX' : { 'composition' :
                           { 'stock_intl' : 1 } },
-          'VGSNX' : { 'er' : 0.08,
-                      'composition' :
+          'VGSNX' : { 'composition' :
                           { 'reit'       : 1 } },
-          'VIIIX' : { 'er' : 0.02,
-                      'composition' :
+          'VIIIX' : { 'composition' :
                           { 'stock_us'   : 1 } },
-          'VBMPX' : { 'er' : 0.05,
-                      'composition' :
+          'VBMPX' : { 'composition' :
                           { 'bonds'      : 1 } },
-          'VTIAX' : { 'er' : 0.16,
-                      'composition' :
+          'VTIAX' : { 'composition' :
                           { 'stock_intl' : 1 } },
-          'VTSAX' : { 'er' : 0.05,
-                      'composition' :
+          'VTSAX' : { 'composition' :
                           { 'stock_us'   : 1 } },
-          'VGSLX' : { 'er' : 0.1,
-                      'composition' :
+          'VGSLX' : { 'composition' :
                           { 'reit'       : 1 } },
-          'VFSVX' : { 'er' : 0.45,
-                      'composition' :
+          'VFSVX' : { 'composition' :
                           { 'stock_intl' : 1 } },
-          'VSIAX' : { 'er' : 0.1,
-                      'composition' :
+          'VSIAX' : { 'composition' :
                           { 'stock_us'   : 1 } },
-          'VFWAX' : { 'er' : 0.15,
-                      'composition' :
+          'VFWAX' : { 'composition' :
                           { 'stock_intl' : 1 } } }
 
 # Lookup current prices
 for fund in funds.keys():
-    params = { 's' : fund, 'f' : 'l1', 'e' : '.csv' }
-    r = requests.get("http://download.finance.yahoo.com/d/quotes.csv",
+    params = { 't' : 'XNAS:' + fund, 'region' : 'usa', 'culture' : 'en-US',
+               'cur' : 'USD'}
+    r = requests.get('http://quotes.morningstar.com/fund/c-header',
                      params=params)
-    funds[fund]['price'] = float(r.text)
+    tree = etree.fromstring(r.text, etree.HTMLParser())
+    funds[fund]['price'] = float(tree.xpath(
+            "//span[@vkey='NAV']/text()")[0].strip())
+    funds[fund]['er'] = float(tree.xpath(
+            "//span[@vkey='ExpenseRatio']/text()")[0].strip().rstrip('%'))
     composition = funds[fund]['composition']
     for asset_class in allocation.keys():
         if asset_class not in composition:
