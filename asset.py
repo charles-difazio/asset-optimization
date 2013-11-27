@@ -1,5 +1,5 @@
 from pulp import *
-import urllib
+import requests
 
 prob = LpProblem("Assets", LpMinimize)
 
@@ -57,9 +57,10 @@ funds = { 'VEMPX' : { 'er' : 0.1,
 
 # Lookup current prices
 for fund in funds.keys():
-    params = urllib.urlencode({ 's' : fund, 'f' : 'l1', 'e' : '.csv' })
-    f = urllib.urlopen("http://download.finance.yahoo.com/d/quotes.csv", params)
-    funds[fund]['price'] = float(f.read())
+    params = { 's' : fund, 'f' : 'l1', 'e' : '.csv' }
+    r = requests.get("http://download.finance.yahoo.com/d/quotes.csv",
+                     params=params)
+    funds[fund]['price'] = float(r.text)
     composition = funds[fund]['composition']
     for asset_class in allocation.keys():
         if asset_class not in composition:
