@@ -76,26 +76,26 @@ prob += (0.18 * funds['VIIIX']['price'] * shares['401k']['VIIIX'] -
          0.82 * funds['VEMPX']['price'] * shares['401k']['VEMPX'] == 0)
 
 # Set up the asset allocation constraints for a given account and asset class
-def assetClassAllocationConstraints(account, asset_class):
+def asset_class_allocation_constraints(account, asset_class):
     return sum([funds[fund]['composition'][asset_class] *
                 funds[fund]['price'] *
                 shares[account][fund] for fund in shares[account].keys()
                 if asset_class in funds[fund]['composition']])
 
 # Ensure US stock allocation
-prob += (sum([assetClassAllocationConstraints(account, 'stock_us') for account in assets.keys()]) ==
+prob += (sum([asset_class_allocation_constraints(account, 'stock_us') for account in assets.keys()]) ==
          ideal_value['stock_us'])
 
 # Ensure Int'l stock allocation
-prob += (sum([assetClassAllocationConstraints(account, 'stock_intl') for account in assets.keys()]) ==
+prob += (sum([asset_class_allocation_constraints(account, 'stock_intl') for account in assets.keys()]) ==
          ideal_value['stock_intl'])
 
 # Ensure REIT allocation
-prob += (sum([assetClassAllocationConstraints(account, 'reit') for account in assets.keys()]) ==
+prob += (sum([asset_class_allocation_constraints(account, 'reit') for account in assets.keys()]) ==
          ideal_value['reit'])
 
 # Ensure US Bond allocation
-prob += (sum([assetClassAllocationConstraints(account, 'bond') for account in assets.keys()]) ==
+prob += (sum([asset_class_allocation_constraints(account, 'bond') for account in assets.keys()]) ==
          ideal_value['bond'])
 
 # Admiral minima + 10%
