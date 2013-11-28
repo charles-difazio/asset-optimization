@@ -9,6 +9,14 @@ allocation = { 'stock_us'   : 0.36,
                'reit'       : 0.08,
                'bond'       : 0.2 }
 
+category = { 'Mid-Cap Blend' : { 'stock_us' : 1 },
+             'Foreign Large Blend' : { 'stock_intl' : 1 },
+             'Real Estate' : { 'reit' : 1 },
+             'Large Blend' : { 'stock_us' : 1 },
+             'Intermediate-Term Bond' : { 'bond' : 1 },
+             'Foreign Small/Mid Blend' : { 'stock_intl' : 1 },
+             'Small Value' : { 'stock_us' : 1 } }
+
 account_value = { '401k'     : 100000,
                   'ira'      : 50000,
                   'personal' : 100000 }
@@ -22,28 +30,10 @@ assets = {'401k' : [ 'VEMPX', 'VTPSX', 'VGSNX', 'VIIIX', 'VBMPX'  ],
           'ira' : [ 'VTIAX', 'VTSAX', 'VGSLX' ],
           'personal' : [ 'VTSAX', 'VFWAX' ] }
 
-funds = { 'VEMPX' : { 'composition' :
-                          { 'stock_us'   : 1 } },
-          'VTPSX' : { 'composition' :
-                          { 'stock_intl' : 1 } },
-          'VGSNX' : { 'composition' :
-                          { 'reit'       : 1 } },
-          'VIIIX' : { 'composition' :
-                          { 'stock_us'   : 1 } },
-          'VBMPX' : { 'composition' :
-                          { 'bonds'      : 1 } },
-          'VTIAX' : { 'composition' :
-                          { 'stock_intl' : 1 } },
-          'VTSAX' : { 'composition' :
-                          { 'stock_us'   : 1 } },
-          'VGSLX' : { 'composition' :
-                          { 'reit'       : 1 } },
-          'VFSVX' : { 'composition' :
-                          { 'stock_intl' : 1 } },
-          'VSIAX' : { 'composition' :
-                          { 'stock_us'   : 1 } },
-          'VFWAX' : { 'composition' :
-                          { 'stock_intl' : 1 } } }
+funds = {}
+for accounts in assets.keys():
+    for fund in assets[accounts]:
+        funds[fund] = {}
 
 # Lookup current prices
 for fund in funds.keys():
@@ -56,10 +46,10 @@ for fund in funds.keys():
             "//span[@vkey='NAV']/text()")[0].strip())
     funds[fund]['er'] = float(tree.xpath(
             "//span[@vkey='ExpenseRatio']/text()")[0].strip().rstrip('%'))
-    composition = funds[fund]['composition']
-    for asset_class in allocation.keys():
-        if asset_class not in composition:
-            composition[asset_class] = 0
+    composition = category[tree.xpath(
+            "//span[@vkey='MorningstarCategory']/text()")[0].strip()]
+    funds[fund]['composition'] = composition
+    print fund, '@', funds[fund]['price'], funds[fund]['er']
 
 shares = {}
 
@@ -85,26 +75,27 @@ for account in account_value.keys():
 prob += (0.18 * funds['VIIIX']['price'] * shares['401k']['VIIIX'] -
          0.82 * funds['VEMPX']['price'] * shares['401k']['VEMPX'] == 0)
 
+# Set up the asset allocation constraints for a given account and asset class
+def assetClassAllocationConstraints(account, asset_class):
+    return sum([funds[fund]['composition'][asset_class] *
+                funds[fund]['price'] *
+                shares[account][fund] for fund in shares[account].keys()
+                if asset_class in funds[fund]['composition']])
+
 # Ensure US stock allocation
-prob += (funds['VEMPX']['price'] * shares['401k']['VEMPX'] +
-         funds['VIIIX']['price'] * shares['401k']['VIIIX'] +
-         funds['VTSAX']['price'] * shares['ira']['VTSAX'] +
-         funds['VTSAX']['price'] * shares['personal']['VTSAX'] ==
+prob += (sum([assetClassAllocationConstraints(account, 'stock_us') for account in assets.keys()]) ==
          ideal_value['stock_us'])
 
 # Ensure Int'l stock allocation
-prob += (funds['VTPSX']['price'] * shares['401k']['VTPSX'] +
-         funds['VTIAX']['price'] * shares['ira']['VTIAX'] +
-         funds['VFWAX']['price'] * shares['personal']['VFWAX'] ==
+prob += (sum([assetClassAllocationConstraints(account, 'stock_intl') for account in assets.keys()]) ==
          ideal_value['stock_intl'])
 
 # Ensure REIT allocation
-prob += (funds['VGSNX']['price'] * shares['401k']['VGSNX'] +
-         funds['VGSLX']['price'] * shares['ira']['VGSLX'] ==
+prob += (sum([assetClassAllocationConstraints(account, 'reit') for account in assets.keys()]) ==
          ideal_value['reit'])
 
 # Ensure US Bond allocation
-prob += (funds['VBMPX']['price'] * shares['401k']['VBMPX'] ==
+prob += (sum([assetClassAllocationConstraints(account, 'bond') for account in assets.keys()]) ==
          ideal_value['bond'])
 
 # Admiral minima + 10%
