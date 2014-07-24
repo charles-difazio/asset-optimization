@@ -17,22 +17,20 @@ category = { 'Mid-Cap Blend' : { 'stock_us' : 1 },
              'Foreign Small/Mid Blend' : { 'stock_intl' : 1 },
              'Small Value' : { 'stock_us' : 1 } }
 
-account_value = { '401k'     : 100000,
-                  'ira'      : 50000,
-                  'personal' : 100000 }
-v_total = sum(account_value.values())
-
-ideal_value = {}
-for asset_class in allocation.keys():
-    ideal_value[asset_class] = allocation[asset_class] * v_total
-
-assets = {'401k' : [ 'VEMPX', 'VTPSX', 'VGSNX', 'VIIIX', 'VBMPX'  ],
-          'ira' : [ 'VTIAX', 'VTSAX', 'VGSLX' ],
-          'personal' : [ 'VTSAX', 'VFWAX' ] }
+assets = {'401k' : { 'VEMPX' : 1000,
+                     'VTPSX' : 1000,
+                     'VGSNX' : 1000,
+                     'VIIIX' : 1000,
+                     'VBMPX' : 1000 },
+          'ira' : { 'VTIAX' : 1000,
+                    'VTSAX' : 1000,
+                    'VGSLX' : 1000 },
+          'personal' : { 'VTSAX' : 1000,
+                         'VFWAX' : 1000 } }
 
 funds = {}
 for accounts in assets.keys():
-    for fund in assets[accounts]:
+    for fund in assets[accounts].keys():
         funds[fund] = {}
 
 # Lookup current prices
@@ -50,6 +48,18 @@ for fund in funds.keys():
             "//span[@vkey='MorningstarCategory']/text()")[0].strip()]
     funds[fund]['composition'] = composition
     print fund, '@', funds[fund]['price'], funds[fund]['er']
+
+account_value = {}
+for account in assets.keys():
+    account_value[account] = sum([ shares * funds[fund]['price']
+                                   for (fund, shares)
+                                   in assets[account].items() ])
+    print '%s value: ' % (account, account_value[account])
+v_total = sum(account_value.values())
+
+ideal_value = {}
+for asset_class in allocation.keys():
+    ideal_value[asset_class] = allocation[asset_class] * v_total
 
 shares = {}
 
