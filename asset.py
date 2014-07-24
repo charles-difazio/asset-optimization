@@ -4,18 +4,21 @@ import requests
 
 prob = LpProblem("Assets", LpMinimize)
 
-allocation = { 'stock_us'   : 0.36,
-               'stock_intl' : 0.36,
-               'reit'       : 0.08,
-               'bond'       : 0.2 }
+allocation = { 'stock_us'   : 0.8 * 0.9 * 0.6,
+               'stock_intl' : 0.8 * 0.9 * 0.4,
+               'reit'       : 0.8 * 0.1,
+               'bond_us'    : 0.2 * 0.8,
+               'bond_intl'  : 0.2 * 0.2 }
 
 category = { 'Mid-Cap Blend' : { 'stock_us' : 1 },
              'Foreign Large Blend' : { 'stock_intl' : 1 },
              'Real Estate' : { 'reit' : 1 },
              'Large Blend' : { 'stock_us' : 1 },
-             'Intermediate-Term Bond' : { 'bond' : 1 },
+             'Intermediate-Term Bond' : { 'bond_us' : 1 },
              'Foreign Small/Mid Blend' : { 'stock_intl' : 1 },
-             'Small Value' : { 'stock_us' : 1 } }
+             'Small Value' : { 'stock_us' : 1 },
+             'World Bond' : { 'bond_intl' : 1 }
+             }
 
 assets = {'401k' : { 'VEMPX' : 1000,
                      'VTPSX' : 1000,
@@ -24,7 +27,8 @@ assets = {'401k' : { 'VEMPX' : 1000,
                      'VBMPX' : 1000 },
           'ira' : { 'VTIAX' : 1000,
                     'VTSAX' : 1000,
-                    'VGSLX' : 1000 },
+                    'VGSLX' : 1000,
+                    'VTABX' : 1000 },
           'personal' : { 'VTSAX' : 1000,
                          'VFWAX' : 1000 } }
 
@@ -54,7 +58,7 @@ for account in assets.keys():
     account_value[account] = sum([ shares * funds[fund]['price']
                                    for (fund, shares)
                                    in assets[account].items() ])
-    print '%s value: ' % (account, account_value[account])
+    print '%s value: %0.2f' % (account, account_value[account])
 v_total = sum(account_value.values())
 
 ideal_value = {}
@@ -92,21 +96,12 @@ def asset_class_allocation_constraints(account, asset_class):
                 shares[account][fund] for fund in shares[account].keys()
                 if asset_class in funds[fund]['composition']])
 
-# Ensure US stock allocation
-prob += (sum([asset_class_allocation_constraints(account, 'stock_us') for account in assets.keys()]) ==
-         ideal_value['stock_us'])
-
-# Ensure Int'l stock allocation
-prob += (sum([asset_class_allocation_constraints(account, 'stock_intl') for account in assets.keys()]) ==
-         ideal_value['stock_intl'])
-
-# Ensure REIT allocation
-prob += (sum([asset_class_allocation_constraints(account, 'reit') for account in assets.keys()]) ==
-         ideal_value['reit'])
-
-# Ensure US Bond allocation
-prob += (sum([asset_class_allocation_constraints(account, 'bond') for account in assets.keys()]) ==
-         ideal_value['bond'])
+# Ensure individual asset allocations
+for asset_class in allocation.keys():
+    prob += (sum([ 
+                asset_class_allocation_constraints(account, asset_class)
+                for account in assets.keys() ]) ==
+             ideal_value[asset_class])
 
 # Admiral minima + 10%
 prob += (funds['VTSAX']['price'] * shares['ira']['VTSAX'] >= 11000)
@@ -118,6 +113,6 @@ prob.solve()
 print "Status: ", LpStatus[prob.status]
 
 for v in prob.variables():
-    print v.name, "=", v.varValue
+    print "%s: %f ($%0.2f)" % (v.name, v.varValue, funds[v.name.split(':')[1]]['price'] * v.varValue)
 
 print "Total cost", value(prob.objective)/v_total
